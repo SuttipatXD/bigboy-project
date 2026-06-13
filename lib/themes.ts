@@ -1,0 +1,88 @@
+import type {Theme, ThemeTokens} from '@/types';
+
+export const THEMES: Record<Theme, ThemeTokens> = {
+  void: {
+    bg: '#0a0a0a',
+    panel: '#111111',
+    panel2: '#161616',
+    fg: '#e8e8e6',
+    muted: '#7a7a78',
+    border: '#262626',
+    hover: '#1b1b1b',
+    accent: '#00d8a0',
+    accentFg: '#001a12',
+    synKey: '#00d8a0',
+    synStr: '#e0a96d',
+    synNum: '#5aa9ff',
+    synBool: '#b794ff',
+    synNull: '#ff6b6b',
+    synPunct: '#5a5a58',
+    gutter: '#3a3a38',
+  },
+  paper: {
+    bg: '#f1efe7',
+    panel: '#fbfaf5',
+    panel2: '#e8e6dc',
+    fg: '#141414',
+    muted: '#6b6b63',
+    border: '#141414',
+    hover: '#e4e2d7',
+    accent: '#00795c',
+    accentFg: '#ffffff',
+    synKey: '#00795c',
+    synStr: '#a8500a',
+    synNum: '#1a5fb4',
+    synBool: '#6a35d4',
+    synNull: '#b8001f',
+    synPunct: '#9a988e',
+    gutter: '#b3b1a6',
+  },
+  punch: {
+    bg: '#000000',
+    panel: '#0c0c0c',
+    panel2: '#141414',
+    fg: '#fafafa',
+    muted: '#7d7d7d',
+    border: '#2c2c2c',
+    hover: '#181818',
+    accent: '#c6ff00',
+    accentFg: '#0a0f00',
+    synKey: '#c6ff00',
+    synStr: '#ffb86b',
+    synNum: '#7fd0ff',
+    synBool: '#d6a3ff',
+    synNull: '#ff7676',
+    synPunct: '#555555',
+    gutter: '#3a3a3a',
+  },
+};
+
+export const METHOD_COLORS: Record<string, string> = {
+  GET: '#00d8a0',
+  POST: '#ffb000',
+  PUT: '#4a9eff',
+  PATCH: '#b388ff',
+  DELETE: '#ff4d4d',
+};
+
+/** Returns a CSSProperties object with all theme tokens as CSS custom properties. */
+export function themeToCssVars(t: ThemeTokens): Record<string, string> {
+  return {
+    '--bg': t.bg,
+    '--panel': t.panel,
+    '--panel2': t.panel2,
+    '--fg': t.fg,
+    '--muted': t.muted,
+    '--border': t.border,
+    '--hover': t.hover,
+    '--accent': t.accent,
+    '--accent-fg': t.accentFg,
+    '--syn-key': t.synKey,
+    '--syn-str': t.synStr,
+    '--syn-num': t.synNum,
+    '--syn-bool': t.synBool,
+    '--syn-null': t.synNull,
+    '--syn-punct': t.synPunct,
+    '--gutter': t.gutter,
+  };
+}
