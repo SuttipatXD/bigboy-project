@@ -11,6 +11,11 @@ const HOP_BY_HOP = new Set([
   'upgrade',
   'host',
   'x-proxy-url',
+  // Node.js fetch auto-decompresses responses, so strip encoding headers to avoid
+  // the browser trying to re-decompress an already-decompressed body.
+  'accept-encoding',
+  'content-encoding',
+  'content-length',
 ]);
 
 async function handleRequest(req: NextRequest): Promise<Response> {

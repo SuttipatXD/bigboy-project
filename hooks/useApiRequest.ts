@@ -107,7 +107,7 @@ export function useApiRequest() {
     } catch (err) {
       const time = Math.round(performance.now() - t0);
       const message = err instanceof Error ? err.message : String(err);
-      const isCors =
+      const isProxyUnreachable =
         message.toLowerCase().includes('failed to fetch') ||
         message.toLowerCase().includes('network');
 
@@ -121,8 +121,8 @@ export function useApiRequest() {
         size: 0,
         body: '',
         headers: [],
-        note: isCors
-          ? `CORS or network error — the server at "${resolvedUrl}" blocked the request from the browser. Use a proxy or enable CORS on your server. (${message})`
+        note: isProxyUnreachable
+          ? `Proxy server (/api/proxy) is unreachable — make sure the dev server (npm run dev) is still running. (${message})`
           : message,
       });
       store.setRespTab('body');
