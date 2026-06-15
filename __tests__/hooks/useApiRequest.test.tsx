@@ -141,10 +141,10 @@ describe('useApiRequest — GREEN — success path', () => {
 });
 
 // ──────────────────────────────────────────────────────────────
-// RED — network error / mock fallback path
+// RED — network error path
 // ──────────────────────────────────────────────────────────────
-describe('useApiRequest — RED — mock fallback on network error', () => {
-  it('falls back to mock response on network error', async () => {
+describe('useApiRequest — RED — network error', () => {
+  it('sets response with ok=false on network error', async () => {
     mockNetworkError();
     const {result} = renderHook(() => useApiRequest());
 
@@ -154,10 +154,11 @@ describe('useApiRequest — RED — mock fallback on network error', () => {
 
     const response = useAppStore.getState().response;
     expect(response).not.toBeNull();
-    expect(response?.ok).toBe(true);
+    expect(response?.ok).toBe(false);
+    expect(response?.status).toBe(0);
   });
 
-  it('sets sandbox note on mock fallback', async () => {
+  it('sets a descriptive note on network error', async () => {
     mockNetworkError();
     const {result} = renderHook(() => useApiRequest());
 
@@ -165,12 +166,10 @@ describe('useApiRequest — RED — mock fallback on network error', () => {
       await result.current.send();
     });
 
-    expect(useAppStore.getState().response?.note).toContain(
-      'Live request blocked by sandbox',
-    );
+    expect(useAppStore.getState().response?.note).toBeTruthy();
   });
 
-  it('still pushes a history entry on fallback', async () => {
+  it('does not push a history entry on network error', async () => {
     mockNetworkError();
     const {result} = renderHook(() => useApiRequest());
 
@@ -178,7 +177,7 @@ describe('useApiRequest — RED — mock fallback on network error', () => {
       await result.current.send();
     });
 
-    expect(useAppStore.getState().history).toHaveLength(1);
+    expect(useAppStore.getState().history).toHaveLength(0);
   });
 
   it('loading is false after fallback', async () => {

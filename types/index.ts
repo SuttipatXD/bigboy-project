@@ -74,6 +74,16 @@ export interface ThemeTokens {
 }
 
 export interface CollectionItem {
+  name?: string;
   method: HttpMethod;
   url: string;
+  params?: KeyValueRow[];
+  headers?: KeyValueRow[];
+  body?: string;
+  auth?: AuthState;
+}
+
+export interface Collection {
+  name: string;
+  items: CollectionItem[];
 }

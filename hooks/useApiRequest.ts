@@ -2,7 +2,7 @@
 
 import {useCallback, useRef} from 'react';
 import {useAppStore} from '@/store/appStore';
-import {buildUrl, buildHeaders, fmtSize, mock} from '@/lib/httpClient';
+import {buildUrl, buildHeaders} from '@/lib/httpClient';
 import {subst} from '@/lib/envInterpolation';
 import type {HistoryEntry} from '@/types';
 
@@ -18,6 +18,35 @@ export function useApiRequest() {
 
     const resolvedUrl = buildUrl(url, params, vars);
     const resolvedHeaders = buildHeaders(headers, auth, method, body, vars);
+
+    const unresolvedVars = resolvedUrl.match(/\{\{[\w.\-]+\}\}/g);
+    if (unresolvedVars) {
+      store.setResponse({
+        status: 0,
+        statusText: 'Unresolved Variables',
+        ok: false,
+        time: 0,
+        size: 0,
+        body: '',
+        headers: [],
+        note: `URL contains unresolved variables: ${unresolvedVars.join(', ')} — add them in the Env panel or rename to match your collection`,
+      });
+      return;
+    }
+
+    if (!/^https?:\/\//i.test(resolvedUrl)) {
+      store.setResponse({
+        status: 0,
+        statusText: 'Invalid URL',
+        ok: false,
+        time: 0,
+        size: 0,
+        body: '',
+        headers: [],
+        note: `URL must start with http:// or https:// — got: "${resolvedUrl}"`,
+      });
+      return;
+    }
 
     store.setLoading(true);
     store.setResponse(null);
@@ -44,7 +73,8 @@ export function useApiRequest() {
         opts.body = subst(body, vars);
       }
 
-      const res = await fetch(resolvedUrl, opts);
+      const proxyHeaders = {...resolvedHeaders, 'x-proxy-url': resolvedUrl};
+      const res = await fetch('/api/proxy', {...opts, headers: proxyHeaders});
       const text = await res.text();
       const time = Math.round(performance.now() - t0);
       const size = new Blob([text]).size;
@@ -74,25 +104,27 @@ export function useApiRequest() {
         note: null,
       });
       store.setRespTab('body');
-    } catch {
+    } catch (err) {
       const time = Math.round(performance.now() - t0);
-      const fallback = mock(resolvedUrl, method);
-      fallback.time = time;
-      fallback.note =
-        'Live request blocked by sandbox — showing a sample response';
+      const message = err instanceof Error ? err.message : String(err);
+      const isCors =
+        message.toLowerCase().includes('failed to fetch') ||
+        message.toLowerCase().includes('network');
 
       stopTimer();
 
-      const entry: HistoryEntry = {
-        id: `${Date.now()}-${Math.random()}`,
-        method,
-        url: resolvedUrl,
-        status: fallback.status,
+      store.setResponse({
+        status: 0,
+        statusText: 'Network Error',
+        ok: false,
         time,
-        ts: Date.now(),
-      };
-      store.pushHistory(entry);
-      store.setResponse(fallback);
+        size: 0,
+        body: '',
+        headers: [],
+        note: isCors
+          ? `CORS or network error — the server at "${resolvedUrl}" blocked the request from the browser. Use a proxy or enable CORS on your server. (${message})`
+          : message,
+      });
       store.setRespTab('body');
     } finally {
       store.setLoading(false);

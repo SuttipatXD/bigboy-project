@@ -4,6 +4,8 @@ import {create} from 'zustand';
 import type {
   ApiResponse,
   AuthState,
+  Collection,
+  CollectionItem,
   EnvVar,
   HistoryEntry,
   HttpMethod,
@@ -33,6 +35,7 @@ export interface AppState {
   body: string;
   envVars: Record<string, EnvVar[]>;
   history: HistoryEntry[];
+  collections: Collection[];
 }
 
 export interface AppActions {
@@ -75,6 +78,10 @@ export interface AppActions {
   pushHistory: (entry: HistoryEntry) => void;
   // load a collection/history item
   loadRequest: (method: HttpMethod, url: string, tab?: ReqTab) => void;
+  loadItem: (item: CollectionItem) => void;
+  // imported postman collections
+  importCollection: (c: Collection) => void;
+  removeCollection: (index: number) => void;
 }
 
 export const INITIAL_STATE: AppState = {
@@ -109,6 +116,7 @@ export const INITIAL_STATE: AppState = {
     ],
   },
   history: [],
+  collections: [],
 };
 
 function updateRowIn(
@@ -212,4 +220,27 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
       methodOpen: false,
       envOpen: false,
     }),
+
+  loadItem: (item) =>
+    set({
+      method: item.method,
+      url: item.url,
+      params: item.params?.length ? item.params : [{key: '', value: '', on: true}],
+      headers: item.headers?.length
+        ? item.headers
+        : [{key: 'Accept', value: 'application/json', on: true}],
+      body: item.body ?? '',
+      auth: item.auth ?? {type: 'none', token: '', user: '', pass: ''},
+      reqTab: item.method === 'GET' || item.method === 'DELETE' ? 'params' : 'body',
+      methodOpen: false,
+      envOpen: false,
+      loading: false,
+      response: null,
+    }),
+
+  importCollection: (c) =>
+    set((s) => ({collections: [...s.collections, c]})),
+
+  removeCollection: (index) =>
+    set((s) => ({collections: s.collections.filter((_, i) => i !== index)})),
 }));
