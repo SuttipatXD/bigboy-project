@@ -21,25 +21,22 @@
 
 ## Screenshots
 
-> ถ่าย screenshot แอปที่รันแล้ววางที่นี่
-
 **หน้าหลัก — VOID Theme (dark)**
 
 ![BigBoy Main UI — VOID Theme](screenshots/main-void.png)
 
 **ส่ง GET request และดู JSON response พร้อม syntax highlight**
+> `GET {{base_url}}/users/1` → 200 OK · 985 ms · 509 B
 
 ![JSON Response Viewer](screenshots/response-json.png)
 
-**Environment Variables panel — สลับ DEV / STAGING / PROD**
+**PAPER Theme (light mode)**
+
+![PAPER Theme](screenshots/theme-paper.png)
+
+**Environment Variables panel — DEV · Variables**
 
 ![Environment Panel](screenshots/env-panel.png)
-
-**Import Postman Collection**
-
-![Postman Import](screenshots/postman-import.png)
-
-> หมายเหตุ: สร้างโฟลเดอร์ `screenshots/` แล้วถ่าย screenshot วางที่นี่ก่อน push
 
 ---
 
