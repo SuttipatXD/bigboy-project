@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BigBoy — Security Report</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d26;
+      --surface2: #222638;
+      --border: #2e3248;
+      --fg: #e2e4f0;
+      --muted: #7b82a8;
+      --accent: #7c6af5;
+
+      --critical: #ff4757;
+      --critical-bg: #2a1418;
+      --critical-border: #5a1d26;
+
+      --high: #ff7f50;
+      --high-bg: #261a12;
+      --high-border: #5a3318;
+
+      --medium: #ffc107;
+      --medium-bg: #262012;
+      --medium-border: #5a4718;
+
+      --low: #4caf7d;
+      --low-bg: #121f18;
+      --low-border: #1e4a30;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.6;
+      padding: 0 0 80px;
+    }
+
+    /* ─── Header ─── */
+    .header {
+      background: var(--surface);
+      border-bottom: 2px solid var(--accent);
+      padding: 32px 48px;
+    }
+    .header-meta { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+    .header h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
+    .header h1 span { color: var(--accent); }
+    .header-sub { color: var(--muted); margin-top: 6px; font-size: 14px; }
+
+    /* ─── Summary bar ─── */
+    .summary {
+      display: flex;
+      gap: 16px;
+      padding: 24px 48px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 15px;
+      flex: 1;
+      min-width: 140px;
+    }
+    .badge-num { font-size: 28px; font-weight: 900; }
+    .badge.critical { background: var(--critical-bg); border: 1px solid var(--critical-border); color: var(--critical); }
+    .badge.high     { background: var(--high-bg);     border: 1px solid var(--high-border);     color: var(--high); }
+    .badge.medium   { background: var(--medium-bg);   border: 1px solid var(--medium-border);   color: var(--medium); }
+    .badge.low      { background: var(--low-bg);      border: 1px solid var(--low-border);      color: var(--low); }
+    .badge.total    { background: var(--surface2); border: 1px solid var(--border); color: var(--fg); }
+
+    /* ─── Overall verdict ─── */
+    .verdict {
+      margin: 0 48px 0;
+      padding: 16px 24px;
+      border-radius: 8px;
+      background: var(--high-bg);
+      border: 1px solid var(--high-border);
+      color: var(--high);
+      font-weight: 600;
+      font-size: 15px;
+      margin-top: 20px;
+    }
+    .verdict-icon { font-size: 20px; margin-right: 8px; }
+
+    /* ─── Content ─── */
+    .content { padding: 32px 48px; }
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 20px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ─── Vulnerability card ─── */
+    .vuln {
+      border-radius: 10px;
+      margin-bottom: 24px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .vuln-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .vuln.critical .vuln-header { background: var(--critical-bg); border-bottom: 1px solid var(--critical-border); }
+    .vuln.high     .vuln-header { background: var(--high-bg);     border-bottom: 1px solid var(--high-border); }
+    .vuln.medium   .vuln-header { background: var(--medium-bg);   border-bottom: 1px solid var(--medium-border); }
+    .vuln.low      .vuln-header { background: var(--low-bg);      border-bottom: 1px solid var(--low-border); }
+
+    .severity-tag {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      padding: 3px 10px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .critical .severity-tag { background: var(--critical); color: #fff; }
+    .high     .severity-tag { background: var(--high);     color: #fff; }
+    .medium   .severity-tag { background: var(--medium);   color: #000; }
+    .low      .severity-tag { background: var(--low);      color: #fff; }
+
+    .vuln-id { font-size: 11px; color: var(--muted); font-family: monospace; }
+    .vuln-title { font-size: 16px; font-weight: 700; flex: 1; }
+    .vuln-chevron { color: var(--muted); font-size: 18px; transition: transform 0.2s; }
+    .vuln.open .vuln-chevron { transform: rotate(180deg); }
+
+    .vuln-body { background: var(--surface); display: none; }
+    .vuln.open .vuln-body { display: block; }
+
+    .vuln-section { padding: 20px 24px; border-bottom: 1px solid var(--border); }
+    .vuln-section:last-child { border-bottom: none; }
+    .vuln-section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .vuln-section p { color: var(--fg); font-size: 14px; line-height: 1.7; }
+
+    pre.code {
+      background: #0a0c14;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
+      font-size: 12.5px;
+      color: #a8d8a8;
+      overflow-x: auto;
+      line-height: 1.6;
+      margin-top: 8px;
+    }
+    pre.code .hl { color: var(--critical); font-weight: bold; }
+    pre.code .fix { color: var(--low); }
+    pre.code .comment { color: var(--muted); }
+
+    .file-ref {
+      display: inline-block;
+      font-family: monospace;
+      font-size: 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      border-radius: 4px;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    ul.fix-list {
+      list-style: none;
+      padding: 0;
+      margin-top: 6px;
+    }
+    ul.fix-list li {
+      font-size: 14px;
+      padding: 5px 0 5px 20px;
+      position: relative;
+      color: var(--fg);
+      line-height: 1.6;
+    }
+    ul.fix-list li::before {
+      content: "→";
+      position: absolute;
+      left: 0;
+      color: var(--low);
+    }
+
+    /* ─── Footer ─── */
+    .footer {
+      margin: 40px 48px 0;
+      padding: 20px 24px;
+      background: var(--surface);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .footer strong { color: var(--fg); }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-meta">Security Analysis Report · Generated 2026-06-15</div>
+  <h1><span>BigBoy</span> — API Client</h1>
+  <div class="header-sub">Next.js 16 + TypeScript · Analyzed by Claude Code (claude-sonnet-4-6)</div>
+</div>
+
+<!-- Summary -->
+<div class="summary">
+  <div class="badge total">
+    <div class="badge-num">7</div>
+    <div>Total Issues</div>
+  </div>
+  <div class="badge critical">
+    <div class="badge-num">1</div>
+    <div>Critical</div>
+  </div>
+  <div class="badge high">
+    <div class="badge-num">2</div>
+    <div>High</div>
+  </div>
+  <div class="badge medium">
+    <div class="badge-num">2</div>
+    <div>Medium</div>
+  </div>
+  <div class="badge low">
+    <div class="badge-num">2</div>
+    <div>Low</div>
+  </div>
+</div>
+
+<div class="verdict">
+  <span class="verdict-icon">⚠</span>
+  <strong>ระดับความปลอดภัยโดยรวม: HIGH RISK</strong> —
+  โปรเจกต์นี้ปลอดภัยสำหรับ local development แต่มีช่องโหว่ร้ายแรง (SSRF) ที่ต้องแก้ไขก่อน deploy สู่ production
+  เพราะจะทำให้ server กลายเป็น proxy เปิดที่ถูกใช้โจมตี internal services ได้
+</div>
+
+<!-- Vulnerabilities -->
+<div class="content">
+  <div class="section-title">Vulnerabilities Found</div>
+
+  <!-- VULN 1: SSRF Critical -->
+  <div class="vuln critical open" onclick="toggle(this)">
+    <div class="vuln-header">
+      <span class="severity-tag">Critical</span>
+      <span class="vuln-id">BB-001</span>
+      <span class="vuln-title">Server-Side Request Forgery (SSRF) — Open Proxy</span>
+      <span class="vuln-chevron">▼</span>
+    </div>
+    <div class="vuln-body">
+      <div class="vuln-section">
+        <div class="vuln-section-label">ไฟล์ที่พบ</div>
+        <span class="file-ref">app/api/proxy/route.ts · บรรทัด 17–18</span>
+        <pre class="code"><span class="hl">const targetUrl = req.headers.get('x-proxy-url');
+if (!targetUrl) {
+  return NextResponse.json({error: 'Missing X-Proxy-Url header'}, {status: 400});
+}
+// ⚠ ไม่มีการ validate targetUrl เลย — fetch ส่งตรงไปทุก URL
+upstream = await fetch(targetUrl, { method: req.method, ... });</span></pre>
+      </div>
+      <div class="vuln-section">
+        <div class="vuln-section-label">สาเหตุ</div>
+        <p>Route Handler <code>/api/proxy</code> รับ URL จาก header <code>X-Proxy-Url</code> และ forward request ไปยัง URL นั้นโดยตรงโดยไม่มีการตรวจสอบ ผู้โจมตีสามารถส่ง request ผ่าน endpoint นี้ไปยัง:</p>
+        <ul class="fix-list" style="margin-top:10px">
+          <li>AWS/GCP instance metadata: <code>http://169.254.169.254/latest/meta-data/</code> (ได้ IAM credentials)</li>
+          <li>Internal services: <code>http://localhost:8080</code>, <code>http://192.168.1.1</code> (internal admin panels)</li>
+          <li>Cloud Redis/DB ที่ไม่ได้ expose ออก public: <code>http://10.0.0.5:6379</code></li>
+        </ul>
+      </div>
+      <div class="vuln-section">
+        <div class="vuln-section-label">วิธีแก้ไขที่แนะนำ</div>
+        <ul class="fix-list">
+          <li>เพิ่ม allowlist ของ hostname ที่อนุญาต ปฏิเสธทุก URL ที่ไม่อยู่ใน list</li>
+          <li>Block private IP ranges ก่อน fetch: 127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16</li>
+          <li>ใช้ DNS resolution เพื่อตรวจสอบว่า IP ปลายทางไม่ใช่ private address</li>
+        </ul>
+        <pre class="code"><span class="fix">// ตัวอย่าง: allowlist approach
+const ALLOWED_HOSTS = process.env.PROXY_ALLOWED_HOSTS?.split(',') ?? [];
+
+function isAllowed(url: string): boolean {
+  try {
+    const {hostname} = new URL(url);
+    return ALLOWED_HOSTS.includes(hostname);
+  } catch { return false; }
+}
+
+if (!isAllowed(targetUrl)) {
+  return NextResponse.json({error: 'Host not allowed'}, {status: 403});
+}</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- VULN 2: Hardcoded tokens -->
+  <div class="vuln high" onclick="toggle(this)">
+    <div class="vuln-header">
+      <span class="severity-tag">High</span>
+      <span class="vuln-id">BB-002</span>
+      <span class="vuln-title">Hardcoded Credentials ใน Client-Side Bundle</span>
+      <span class="vuln-chevron">▼</span>
+    </div>
+    <div class="vuln-body">
+      <div class="vuln-section">
+        <div class="vuln-section-label">ไฟล์ที่พบ</div>
+        <span class="file-ref">store/appStore.ts · บรรทัด 107–116</span>
+        <pre class="code"><span class="hl">STAGING: [
+  {key: 'base_url', value: 'https://staging.api.bigboy.dev', on: true},
+  {key: 'token', value: 'stg-9c21-token', on: true},  // ← token ใน source code
+],</span></pre>
+      </div>
+      <div class="vuln-section">
+        <div class="vuln-section-label">สาเหตุ</div>
+        <p>Token <code>stg-9c21-token</code> ถูก hardcode ใน Zustand initial state ซึ่งเป็น client-side code ทำให้ token นี้ถูก bundle เข้าไปใน JavaScript ที่ส่งให้ browser ทุกคนที่เปิดหน้าเว็บและ inspect JS bundle ด้วย DevTools จะเห็น token นี้ได้ทันที</p>
+      </div>
+      <div class="vuln-section">
+        <div class="vuln-section-label">วิธีแก้ไขที่แนะนำ</div>
+        <ul class="fix-list">
+          <li>เก็บ default token ใน <code>.env.local</code> และ inject ผ่าน <code>NEXT_PUBLIC_</code> prefix เฉพาะตอน dev</li>
+          <li>สำหรับ production ให้ผู้ใช้กรอก token เองผ่าน UI แทน hardcode</li>
+          <li>ไม่ควร commit ไฟล์ <code>.env</code> ที่มีค่าจริงเข้า git repository</li>
+        </ul>
+        <pre class="code"><span class="comment">// .env.local (ไม่ commit)</span>
+<span class="fix">NEXT_PUBLIC_DEV_TOKEN=dev-7f3a-secret</span>
+
+<span class="comment">// store/appStore.ts</span>
+<span class="fix">token: process.env.NEXT_PUBLIC_DEV_TOKEN ?? '',</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- VULN 3: No rate limiting -->
+  <div class="vuln high" onclick="toggle(this)">
+    <div class="vuln-header">
+      <span class="severity-tag">High</span>
+      <span class="vuln-id">BB-003</span>
+      <span class="vuln-title">ไม่มี Rate Limiting บน Proxy Endpoint</span>
+      <span class="vuln-chevron">▼</span>
+    </div>
+    <div class="vuln-body">
+      <div class="vuln-section">
+        <div class="vuln-section-label">ไฟล์ที่พบ</div>
+        <span class="file-ref">app/api/proxy/route.ts</span>
+      </div>
+      <div class="vuln-section">
+        <div class="vuln-section-label">สาเหตุ</div>
+        <p>Proxy endpoint ไม่มีการจำกัดจำนวน request ต่อ IP หรือต่อหน่วยเวลา หากนำขึ้น production บุคคลภายนอกสามารถใช้ proxy นี้เป็น DDoS amplifier ส่ง request flood ไปยัง target ใด ๆ โดยซ่อน IP ต้นทาง รวมถึงใช้สำหรับ port scanning internal network</p>
+      </div>
+      <div class="vuln-section">
+        <div class="vuln-section-label">วิธีแก้ไขที่แนะนำ</div>
+        <ul class="fix-list">
+          <li>เพิ่ม rate limiting ด้วย middleware เช่น <code>@upstash/ratelimit</code> หรือ Vercel Edge Middleware</li>
+          <li>จำกัด proxy ให้ใช้ได้เฉพาะ request ที่มาจาก same-origin (ตรวจ <code>Origin</code> header)</li>
+          <li>เพิ่ม authentication check ก่อนให้ใช้ proxy (session token หรือ API key)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- VULN 4: Missing Security Headers -->
+  <div class="vuln medium" onclick="toggle(this)">
+    <div class="vuln-header">
+      <span class="severity-tag">Medium</span>
+      <span class="vuln-id">BB-004</span>
+      <span class="vuln-title">Missing HTTP Security Headers</span>
+      <span class="vuln-chevron">▼</span>
+    </div>
+    <div class="vuln-body">
+      <div class="vuln-section">
+        <div class="vuln-section-label">ไฟล์ที่พบ</div>
+        <span class="file-ref">next.config.ts</span>
+      </div>
+      <div class="vuln-section">
+        <div class="vuln-section-label">สาเหตุ</div>
+        <p>ไม่มีการกำหนด security headers ในการตอบกลับ HTTP ทำให้ขาดการป้องกันระดับ browser ดังนี้:</p>
+        <ul class="fix-list" style="margin-top:10px">
+          <li><strong>Content-Security-Policy</strong> ไม่มี — XSS payload สามารถโหลด external script ได้</li>
+          <li><strong>X-Frame-Options</strong> ไม่มี — แอปสามารถถูก embed ใน iframe เพื่อ Clickjacking</li>
+          <li><strong>X-Content-Type-Options</strong> ไม่มี — browser อาจ MIME-sniff response จาก proxy</li>
+          <li><strong>Referrer-Policy</strong> ไม่มี — URL ส่งออกใน Referer header โดยไม่จำเป็น</li>
+        </ul>
+      </div>
+      <div class="vuln-section">
+        <div class="vuln-section-label">วิธีแก้ไขที่แนะนำ</div>
+        <pre class="code"><span class="fix">// next.config.ts
+const securityHeaders = [
+  { key: 'X-Frame-Options', value: 'DENY' },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+  {
+    key: 'Content-Security-Policy',
+    value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com",
+  },
+];
+
+const nextConfig: NextConfig = {
+  async headers() {
+    return [{ source: '/(.*)', headers: securityHeaders }];
+  },
+};</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- VULN 5: No CORS restriction on proxy -->
+  <div class="vuln medium" onclick="toggle(this)">
+    <div class="vuln-header">
+      <span class="severity-tag">Medium</span>
+      <span class="vuln-id">BB-005</span>
+      <span class="vuln-title">Proxy Endpoint ไม่มี CORS Restriction</span>
+      <span class="vuln-chevron">▼</span>
+    </div>
+    <div class="vuln-body">
+      <div class="vuln-section">
+        <div class="vuln-section-label">ไฟล์ที่พบ</div>
+        <span class="file-ref">app/api/proxy/route.ts</span>
+      </div>
+      <div class="vuln-section">
+        <div class="vuln-section-label">สาเหตุ</div>
+        <p>Route Handler ไม่มีการตรวจสอบ <code>Origin</code> header ทำให้ browser จาก domain ใด ๆ สามารถส่ง cross-origin request มาใช้ proxy ได้ หากนำขึ้น production เว็บไซต์อื่นสามารถ fetch ผ่าน proxy นี้ได้โดยที่เราไม่รู้ตัว</p>
+      </div>
+      <div class="vuln-section">
+        <div class="vuln-section-label">วิธีแก้ไขที่แนะนำ</div>
+        <ul class="fix-list">
+          <li>ตรวจ <code>Origin</code> header ให้ตรงกับ domain ของแอป เช่น <code>https://bigboy.yourdomain.com</code></li>
+          <li>ถ้าใช้เป็น internal tool ให้เพิ่ม IP restriction ใน middleware หรือผ่าน deployment platform</li>
+        </ul>
+        <pre class="code"><span class="fix">const origin = req.headers.get('origin');
+const ALLOWED_ORIGINS = ['http://localhost:3000', 'https://yourdomain.com'];
+if (origin && !ALLOWED_ORIGINS.includes(origin)) {
+  return NextResponse.json({error: 'Forbidden'}, {status: 403});
+}</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- VULN 6: Auth credentials in plain state -->
+  <div class="vuln low" onclick="toggle(this)">
+    <div class="vuln-header">
+      <span class="severity-tag">Low</span>
+      <span class="vuln-id">BB-006</span>
+      <span class="vuln-title">Auth Credentials เก็บใน Plain React State (DevTools Exposure)</span>
+      <span class="vuln-chevron">▼</span>
+    </div>
+    <div class="vuln-body">
+      <div class="vuln-section">
+        <div class="vuln-section-label">ไฟล์ที่พบ</div>
+        <span class="file-ref">store/appStore.ts · บรรทัด 99–103</span>
+        <pre class="code"><span class="hl">auth: {type: 'none', token: '{{token}}', user: '', pass: ''},</span></pre>
+      </div>
+      <div class="vuln-section">
+        <div class="vuln-section-label">สาเหตุ</div>
+        <p>Bearer token และ Basic Auth credentials (username/password) ถูกเก็บใน Zustand store ซึ่งเป็น plain JavaScript object ใครที่เปิด React DevTools ในเครื่องผู้ใช้สามารถเห็นค่า token และ password ได้โดยตรง ความเสี่ยงนี้เหมาะสมกับ local dev tool แต่ควรระวังหาก deploy บน shared environment</p>
+      </div>
+      <div class="vuln-section">
+        <div class="vuln-section-label">วิธีแก้ไขที่แนะนำ</div>
+        <ul class="fix-list">
+          <li>ใน production ให้เก็บ token ใน <code>sessionStorage</code> หรือ in-memory store ที่ไม่ persist</li>
+          <li>อย่า persist auth state ลง <code>localStorage</code> — ถ้าทำให้ระวัง XSS ที่จะ read ออกไปได้</li>
+          <li>ระดับ low เพราะ BigBoy เป็น developer tool ที่รันบน local machine ของตัวเอง</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- VULN 7: Unvalidated JSON body -->
+  <div class="vuln low" onclick="toggle(this)">
+    <div class="vuln-header">
+      <span class="severity-tag">Low</span>
+      <span class="vuln-id">BB-007</span>
+      <span class="vuln-title">Request Body ส่งไปโดยไม่ validate JSON Syntax</span>
+      <span class="vuln-chevron">▼</span>
+    </div>
+    <div class="vuln-body">
+      <div class="vuln-section">
+        <div class="vuln-section-label">ไฟล์ที่พบ</div>
+        <span class="file-ref">hooks/useApiRequest.ts · บรรทัด 73</span>
+        <pre class="code"><span class="hl">opts.body = subst(body, vars);  // ส่ง body ตรง ๆ ไม่ parse ก่อน</span></pre>
+      </div>
+      <div class="vuln-section">
+        <div class="vuln-section-label">สาเหตุ</div>
+        <p>Body content ถูกส่งไปยัง server โดยไม่ผ่าน <code>JSON.parse()</code> ก่อน ทำให้ส่ง malformed JSON ไปได้โดยไม่มี error ในฝั่ง client ก่อน ในทาง security นี้ไม่ได้เป็นช่องโหว่ร้ายแรงสำหรับ developer tool แต่อาจทำให้ user สับสนเมื่อ server return 400 Bad Request จาก malformed JSON โดยไม่มี local warning</p>
+      </div>
+      <div class="vuln-section">
+        <div class="vuln-section-label">วิธีแก้ไขที่แนะนำ</div>
+        <ul class="fix-list">
+          <li>ตรวจ JSON syntax ก่อน send แล้วแสดง inline error ใน Body panel หากไม่ valid</li>
+          <li>ปุ่ม BEAUTIFY ที่มีอยู่แล้วช่วยบางส่วน แต่ควรเพิ่ม real-time validation feedback</li>
+        </ul>
+        <pre class="code"><span class="fix">// ตัวอย่าง: validate before send
+if (body.trim() && !['GET', 'HEAD'].includes(method)) {
+  try { JSON.parse(body); }
+  catch { /* show inline warning — still allow send */ }
+}</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <strong>วิธีการวิเคราะห์:</strong> Static code analysis โดย Claude Code (claude-sonnet-4-6) ·
+    ตรวจสอบทุกไฟล์ใน <code>app/</code>, <code>components/</code>, <code>hooks/</code>, <code>lib/</code>, <code>store/</code> ·
+    อ้างอิง OWASP Top 10 (2021): A01 Broken Access Control, A02 Cryptographic Failures, A05 Security Misconfiguration, A10 SSRF ·
+    <strong>หมายเหตุ:</strong> รายงานนี้ครอบคลุมเฉพาะ static analysis ไม่รวม penetration testing หรือ dynamic analysis
+  </div>
+</div>
+
+<script>
+  function toggle(el) {
+    el.classList.toggle('open');
+  }
+</script>
+</body>
+</html>
