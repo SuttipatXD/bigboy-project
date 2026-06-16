@@ -216,8 +216,32 @@ bigboy-project/
 │   └── appStore.ts         # Zustand global store
 ├── types/
 │   └── index.ts            # shared TypeScript types
-└── __tests__/              # Jest test suites
+├── __tests__/              # Jest test suites (272 tests, 17 suites)
+├── .claude/
+│   └── commands/
+│       └── add-test.md     # Custom Skill: generate test file จาก source file
+├── CLAUDE.md               # Prompt Log — 6 prompts สำคัญระหว่างพัฒนา
+└── security-report.html    # Security analysis report
 ```
+
+---
+
+## Claude Code Workflow
+
+โปรเจคนี้ใช้ Claude Code เป็นเครื่องมือหลักในการพัฒนา บันทึก prompt สำคัญไว้ใน [CLAUDE.md](CLAUDE.md)
+
+### Custom Skill — `/add-test`
+
+สร้าง Claude Code skill สำหรับโปรเจคนี้โดยเฉพาะ อยู่ที่ `.claude/commands/add-test.md`
+
+```bash
+# ใช้งาน: รับชื่อ source file แล้ว generate test file ให้อัตโนมัติ
+/add-test lib/postmanImport.ts
+# → สร้าง __tests__/lib/postmanImport.test.ts
+# → อ่าน pattern จาก test ที่มีอยู่ → ครอบคลุม happy path + edge cases → run ตรวจผ่าน
+```
+
+**ปัญหาที่แก้:** เขียน test ด้วยมือทีละไฟล์ใช้เวลานาน และมักพลาด edge case skill นี้ทำให้ generate tests ใหม่ได้ในไม่กี่วินาที โดยยึด pattern ของโปรเจคเอง
 
 ---
 
